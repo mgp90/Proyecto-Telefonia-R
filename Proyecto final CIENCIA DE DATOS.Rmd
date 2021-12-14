@@ -1,0 +1,661 @@
+---
+title: "Trabajo Final Módulo Ciencia de Datos"
+author: "Manuel González Petersen"
+date: "05/04/2020"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+options(width=100)
+
+library(knitr)
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(GGally)
+library(gridExtra)
+library(leaps)
+library(stats)
+library(MASS)
+library(kableExtra)
+```
+
+
+
+```{r lectura_datos, include=FALSE}
+# Localización de work directory.
+setwd("D:/Drive/MasterD/MOD 2 - Ciencia de datos/Proyecto final")
+
+# Lectura del archivo, adjunto en el zip.
+churn_data <- read.table("WA_Fn-UseC_-Telco-Customer-Churn.csv", header = TRUE, sep = ",")
+
+# Division y conversión de las variables.
+cualit=c("gender","SeniorCitizen","Partner","Dependents","PhoneService","MultipleLines","InternetService","OnlineSecurity","OnlineBackup","DeviceProtection","TechSupport","StreamingTV","StreamingMovies","Contract","PaperlessBilling","PaymentMethod", "Churn")
+churn_data[,cualit] <- lapply(churn_data[,cualit] , factor)
+
+cuanti <- churn_data %>% dplyr::select("tenure","MonthlyCharges","TotalCharges")
+
+
+```
+
+
+# Análisis Exploratorio
+
+Lo realizaremos con el conjunto completo de datos
+
+- Identifica para columna el tipo de dato (character, factor, numeric, etc) en el que ha sido almacenado
+
+```{r identificación de los datos, echo = FALSE }
+(col_class<-sapply(churn_data, class))
+```
+- Visualiza un resumen del conjunto de datos mediante la función summary.
+
+```{r Visuañización mediante summary, echo = FALSE}
+summary(col_class)
+```
+- De cara a la predicción del churn, para cada una de las variables excepto el customerID:
+
+  o Realiza un diagrama de frecuencias para las variables cualitativas o histogramas para las variables cuantitativas
+  
+```{r Diagramas unicolor, echo = FALSE}
+
+#Variables cualitativas
+
+
+p1<-ggplot(churn_data, aes(gender)) + geom_bar(position = "stack")
+p2<-ggplot(churn_data, aes(SeniorCitizen)) + geom_bar(position = "stack")
+grid.arrange(p1, p2, ncol = 2)
+p1<-ggplot(churn_data, aes(Partner)) + geom_bar(position = "stack")
+p2<-ggplot(churn_data, aes(Dependents)) + geom_bar(position = "stack")
+grid.arrange(p1, p2, ncol = 2)
+p1<-ggplot(churn_data, aes(PhoneService)) + geom_bar(position = "stack")
+p2<-ggplot(churn_data, aes(MultipleLines)) + geom_bar(position = "stack")
+grid.arrange(p1, p2, ncol = 2)
+p1<-ggplot(churn_data, aes(InternetService)) + geom_bar(position = "stack")
+p2<-ggplot(churn_data, aes(OnlineSecurity)) + geom_bar(position = "stack")
+grid.arrange(p1, p2, ncol = 2)
+p1<-ggplot(churn_data, aes(OnlineBackup)) + geom_bar(position = "stack")
+p2<-ggplot(churn_data, aes(DeviceProtection)) + geom_bar(position = "stack")
+grid.arrange(p1, p2, ncol = 2)
+p1<-ggplot(churn_data, aes(TechSupport)) + geom_bar(position = "stack")
+p2<-ggplot(churn_data, aes(StreamingTV)) + geom_bar(position = "stack")
+grid.arrange(p1, p2, ncol = 2)
+p1<-ggplot(churn_data, aes(StreamingMovies)) + geom_bar(position = "stack")
+p2<-ggplot(churn_data, aes(Contract)) + geom_bar(position = "stack") + theme(axis.text.x = element_text(angle = 45,hjust = 1))
+grid.arrange(p1, p2, ncol = 2)
+p1<-ggplot(churn_data, aes(PaperlessBilling)) + geom_bar(position = "stack")
+p2<-ggplot(churn_data, aes(PaymentMethod)) + geom_bar(position = "stack") + theme(axis.text.x = element_text(angle = 45 , hjust = 1))
+grid.arrange(p1, p2, ncol = 2)
+
+# Varaibles cuantitativas
+
+#Al ser solo 3 los muestro individualmente
+
+ggplot(churn_data) + geom_histogram(aes(tenure))
+ggplot(churn_data) + geom_histogram(aes(MonthlyCharges))
+ggplot(churn_data) + geom_histogram(aes(TotalCharges))
+```
+  
+  
+  o Muestra los gráficos anteriores coloreados según la variable Churn para poder ver la proporción de “churners” en función     del valor de las distintas variables. Se muestran dos ejemplos a continuación
+  
+```{r Diagramas a color, echo = FALSE}
+#Variables cualitativas
+
+p1<-ggplot(churn_data, aes(gender, fill=Churn)) + geom_bar(position = "stack") + theme(legend.position = "none")
+p2<-ggplot(churn_data, aes(SeniorCitizen, fill=Churn)) + geom_bar(position = "stack")
+grid.arrange(p1, p2, ncol = 2)
+p1<-ggplot(churn_data, aes(Partner, fill=Churn)) + geom_bar(position = "stack") + theme(legend.position = "none")
+p2<-ggplot(churn_data, aes(Dependents, fill=Churn)) + geom_bar(position = "stack")
+grid.arrange(p1, p2, ncol = 2)
+p1<-ggplot(churn_data, aes(PhoneService, fill=Churn)) + geom_bar(position = "stack") + theme(legend.position = "none")
+p2<-ggplot(churn_data, aes(MultipleLines, fill=Churn)) + geom_bar(position = "stack")
+grid.arrange(p1, p2, ncol = 2)
+p1<-ggplot(churn_data, aes(InternetService, fill=Churn)) + geom_bar(position = "stack") + theme(legend.position = "none")
+p2<-ggplot(churn_data, aes(OnlineSecurity, fill=Churn)) + geom_bar(position = "stack")
+grid.arrange(p1, p2, ncol = 2)
+p1<-ggplot(churn_data, aes(OnlineBackup, fill=Churn)) + geom_bar(position = "stack") + theme(legend.position = "none")
+p2<-ggplot(churn_data, aes(DeviceProtection, fill=Churn)) + geom_bar(position = "stack")
+grid.arrange(p1, p2, ncol = 2)
+p1<-ggplot(churn_data, aes(TechSupport, fill=Churn)) + geom_bar(position = "stack") + theme(legend.position = "none")
+p2<-ggplot(churn_data, aes(StreamingTV, fill=Churn)) + geom_bar(position = "stack")
+grid.arrange(p1, p2, ncol = 2)
+p1<-ggplot(churn_data, aes(StreamingMovies, fill=Churn)) + geom_bar(position = "stack") + theme(legend.position = "none")
+p2<-ggplot(churn_data, aes(Contract, fill=Churn)) + geom_bar(position = "stack") + theme(axis.text.x = element_text(angle = 45,hjust = 1))
+grid.arrange(p1, p2, ncol = 2)
+p1<-ggplot(churn_data, aes(PaperlessBilling, fill=Churn)) + geom_bar(position = "stack") + theme(legend.position = "none")
+p2<-ggplot(churn_data, aes(PaymentMethod, fill=Churn)) + geom_bar(position = "stack") + theme(axis.text.x = element_text(angle = 45 , hjust = 1))
+grid.arrange(p1, p2, ncol = 2)
+
+# Varaibles cuantitativas
+
+#Al ser solo 3 los muestro individualmente
+
+ggplot(churn_data) + geom_histogram(aes(tenure, fill=Churn))
+ggplot(churn_data) + geom_histogram(aes(MonthlyCharges, fill=Churn))
+ggplot(churn_data) + geom_histogram(aes(TotalCharges, fill=Churn))
+
+```
+
+
+- De cara a la predicción del gasto mensual:
+
+  - Para las variables categóricas realiza un boxplot que muestre la distribución del gasto mensual (MonthlyCharges) para cada valor de las variables.
+  
+  -Para las variables numéricas realiza un gráfico de dispersión que muestre la correlación entre variables. Puedes hacerlo uno a uno o usar un gráfico de correlación conjunto.
+  
+```{r Plots gasto mensual, echo = FALSE}
+#Variables cualitativas Boxplot
+
+p1 <- churn_data %>% ggplot(aes(x = gender, y = MonthlyCharges, fill = gender)) + geom_boxplot() + theme(legend.position = "none", plot.title = element_text(hjust = 0.5, margin=  margin(t = 5, b = 5)))  + labs(title = "Gender", x = "", y = "")
+p2 <- churn_data %>% ggplot(aes(x = SeniorCitizen, y = MonthlyCharges, fill = SeniorCitizen)) + geom_boxplot() + theme(legend.position = "none", plot.title = element_text(hjust = 0.5, margin=  margin(t = 5, b = 5)))  + labs(title = "SeniorCitizen", x = "", y = "")
+grid.arrange(p1, p2, ncol = 2)
+p1 <- churn_data %>% ggplot(aes(x = Partner, y = MonthlyCharges, fill = Partner)) + geom_boxplot() + theme(legend.position = "none", plot.title = element_text(hjust = 0.5, margin=  margin(t = 5, b = 5)))  + labs(title = "Partner", x = "", y = "")
+p2 <- churn_data %>% ggplot(aes(x = Dependents, y = MonthlyCharges, fill = Dependents)) + geom_boxplot() + theme(legend.position = "none", plot.title = element_text(hjust = 0.5, margin=  margin(t = 5, b = 5)))  + labs(title = "Dependents", x = "", y = "")
+grid.arrange(p1, p2, ncol = 2)
+p1 <- churn_data %>% ggplot(aes(x = PhoneService, y = MonthlyCharges, fill = PhoneService)) + geom_boxplot() + theme(legend.position = "none", plot.title = element_text(hjust = 0.5, margin=  margin(t = 5, b = 5)))  + labs(title = "PhoneService", x = "", y = "")
+p2 <- churn_data %>% ggplot(aes(x = MultipleLines, y = MonthlyCharges, fill = MultipleLines)) + geom_boxplot() + theme(legend.position = "none", plot.title = element_text(hjust = 0.5, margin=  margin(t = 5, b = 5)))  + labs(title = "MultipleLines", x = "", y = "")
+grid.arrange(p1, p2, ncol = 2)
+p1 <- churn_data %>% ggplot(aes(x = InternetService, y = MonthlyCharges, fill = InternetService)) + geom_boxplot() + theme(legend.position = "none", plot.title = element_text(hjust = 0.5, margin=  margin(t = 5, b = 5)))  + labs(title = "InternetService", x = "", y = "")
+p2 <- churn_data %>% ggplot(aes(x = OnlineSecurity, y = MonthlyCharges, fill = OnlineSecurity)) + geom_boxplot() + theme(legend.position = "none", plot.title = element_text(hjust = 0.5, margin=  margin(t = 5, b = 5)))  + labs(title = "OnlineSecurity", x = "", y = "")
+grid.arrange(p1, p2, ncol = 2)
+p1 <- churn_data %>% ggplot(aes(x = OnlineBackup, y = MonthlyCharges, fill = OnlineBackup)) + geom_boxplot() + theme(legend.position = "none", plot.title = element_text(hjust = 0.5, margin=  margin(t = 5, b = 5)))  + labs(title = "OnlineBackup", x = "", y = "")
+p2 <- churn_data %>% ggplot(aes(x = DeviceProtection, y = MonthlyCharges, fill = DeviceProtection)) + geom_boxplot() + theme(legend.position = "none", plot.title = element_text(hjust = 0.5, margin=  margin(t = 5, b = 5)))  + labs(title = "DeviceProtection", x = "", y = "")
+grid.arrange(p1, p2, ncol = 2)
+p1 <- churn_data %>% ggplot(aes(x = TechSupport, y = MonthlyCharges, fill = TechSupport)) + geom_boxplot() + theme(legend.position = "none", plot.title = element_text(hjust = 0.5, margin=  margin(t = 5, b = 5)))  + labs(title = "TechSupport", x = "", y = "")
+p2 <- churn_data %>% ggplot(aes(x = StreamingTV, y = MonthlyCharges, fill = StreamingTV)) + geom_boxplot() + theme(legend.position = "none", plot.title = element_text(hjust = 0.5, margin=  margin(t = 5, b = 5)))  + labs(title = "StreamingTV", x = "", y = "")
+grid.arrange(p1, p2, ncol = 2)
+p1 <- churn_data %>% ggplot(aes(x = StreamingMovies, y = MonthlyCharges, fill = StreamingMovies)) + geom_boxplot() + theme(legend.position = "none", plot.title = element_text(hjust = 0.5, margin=  margin(t = 5, b = 5)))  + labs(title = "StreamingMovies", x = "", y = "")
+p2 <- churn_data %>% ggplot(aes(x = Contract, y = MonthlyCharges, fill = Contract)) + geom_boxplot() + theme(legend.position = "none", plot.title = element_text(hjust = 0.5, margin=  margin(t = 5, b = 5)))  + labs(title = "Contract", x = "", y = "")
+grid.arrange(p1, p2, ncol = 2)
+p1 <- churn_data %>% ggplot(aes(x = PaperlessBilling, y = MonthlyCharges, fill = PaperlessBilling)) + geom_boxplot() + theme(legend.position = "none", plot.title = element_text(hjust = 0.5, margin=  margin(t = 5, b = 5)))  + labs(title = "PaperlessBilling", x = "", y = "")
+p2 <- churn_data %>% ggplot(aes(x = PaymentMethod, y = MonthlyCharges, fill = PaymentMethod)) + geom_boxplot() + theme(legend.position = "none", plot.title = element_text(hjust = 0.5, margin=  margin(t = 5, b = 5)),axis.text.x = element_text(angle = 45 , hjust = 1)) + labs(title = "PaymentMethod", x = "", y = "")
+grid.arrange(p1, p2, ncol = 2)
+
+# Varaibles cuantitativas
+
+ggpairs(cuanti,aes(color=churn_data$Churn))
+```
+
+
+- Cualquier otra cosa que se te ocurra y creas que da información sobre los problemas que queremos resolver en el proyecto.
+
+```{r}
+
+```
+
+En este proyecto en particular, los datos están limpios y no hay valores erróneos o anómalos. En general, esto es extraño que suceda y el proceso de análisis exploratorio te hubiera ayudado a encontrar y corregir estos errores.
+
+Si hay alguna variable que deba ser considerada como categórica en lugar de como numérica transfórmala. Es necesario para que los modelos de regresión o clasificación funcionen correctamente.
+
+```{r Reconocecimiento de las variables, include = FALSE }
+str(churn_data)
+```
+Antes de seguir adelante, vamos a dividir el conjunto de datos en dos subconjuntos de entrenamiento y test:
+
+  - churn_train: Contendrá las 5000 primeras de churn_data
+  - churn_test: Contendrá las filas de la 5001 al final de churn_data
+
+```{r Division de subconjuntos, include = FALSE}
+churn_train <- churn_data[1:5000,]
+churn_test <- churn_data[5001:7043,]
+```
+
+
+
+## Modelos de Regresión
+
+
+Vamos a diseñar y ajustar un modelo de regresión para modelar y predecir el gasto mensual de los clientes
+Ajusta un modelo de regresión multilineal sobre los datos de entrenamiento churn_train:
+
+  - Usa como variable objetivo MonthlyCharges
+  - Usa como variables predictoras todas las demás menos customerId, TotalCharges y Churn.
+
+
+```{r Modelo regresión con train, echo=FALSE}
+train.lm <- lm(MonthlyCharges ~.-customerID -TotalCharges -Churn ,data=churn_train)
+```
+
+Muestra los detalles del modelo ajustado mediante la función summary aplicada al objeto donde has almacenado el modelo ajustado. A partir del detalle sobre los coeficientes del modelo ajustado responde a las siguientes cuestiones:
+
+```{r Summary de LM de train, echo=FALSE}
+(summ.mod.lm <-summary(train.lm))
+```
+
+  - ¿Cuáles son las variables/coeficientes que a un nivel de significancia del 95% podemos concluir que son     no nulos?
+  
+```{r Coefficientes de train, echo=FALSE}
+coeffsm = coef(summ.mod.lm)
+coeffsm[coeffsm[,4]<0.05,]
+```
+  
+  - A partir del valor de los coeficientes, ¿podrías estimar el coste de los diferentes servicios: teléfono,     DSL, Fibra, seguridad, TV, etc.?
+
+
+```{r Estimación de los servicios, echo=FALSE}
+#Modelo Ajustado
+train.lm.ajus <- lm(MonthlyCharges ~ PhoneService + MultipleLines + InternetService + OnlineSecurity + OnlineBackup + DeviceProtection + TechSupport + StreamingTV + StreamingMovies,data=churn_train)
+
+
+#Busco el precio de PhoneService
+new_data <- data.frame(PhoneService = "Yes", MultipleLines = "No", InternetService = "No", OnlineSecurity = "No", OnlineBackup = "No", DeviceProtection = "No", TechSupport = "No", StreamingTV = "No", StreamingMovies = "No")
+
+pred.telf <- predict(train.lm.ajus,newdata = new_data, type = "response")
+
+
+#Busco el precio de MultipleLines
+new_data <- data.frame(PhoneService = "No", MultipleLines = "Yes", InternetService = "No", OnlineSecurity = "No", OnlineBackup = "No", DeviceProtection = "No", TechSupport = "No", StreamingTV = "No", StreamingMovies = "No")
+
+pred.mult <- predict(train.lm.ajus,newdata = new_data, type = "response")
+
+
+#Busco el precio de InternetService = DSL
+new_data <- data.frame(PhoneService = "No", MultipleLines = "No", InternetService = "DSL", OnlineSecurity = "No", OnlineBackup = "No", DeviceProtection = "No", TechSupport = "No", StreamingTV = "No", StreamingMovies = "No")
+
+pred.dsl <- predict(train.lm.ajus,newdata = new_data, type = "response")
+
+
+#Busco el precio de InternetService = Fiber optic
+new_data <- data.frame(PhoneService = "No", MultipleLines = "No", InternetService = "Fiber optic", OnlineSecurity = "No", OnlineBackup = "No", DeviceProtection = "No", TechSupport = "No", StreamingTV = "No", StreamingMovies = "No")
+
+pred.fiber <- predict(train.lm.ajus,newdata = new_data, type = "response")
+
+
+#Busco el precio de OnlineSecurity
+new_data <- data.frame(PhoneService = "No", MultipleLines = "No", InternetService = "No", OnlineSecurity = "Yes", OnlineBackup = "No", DeviceProtection = "No", TechSupport = "No", StreamingTV = "No", StreamingMovies = "No")
+
+pred.sec <- predict(train.lm.ajus,newdata = new_data, type = "response")
+
+
+#Busco el precio de OnlineBackup
+new_data <- data.frame(PhoneService = "No", MultipleLines = "No", InternetService = "No", OnlineSecurity = "No", OnlineBackup = "Yes", DeviceProtection = "No", TechSupport = "No", StreamingTV = "No", StreamingMovies = "No")
+
+pred.back <- predict(train.lm.ajus,newdata = new_data, type = "response")
+
+
+#Busco el precio de DeviceProtection
+new_data <- data.frame(PhoneService = "No", MultipleLines = "No", InternetService = "No", OnlineSecurity = "No", OnlineBackup = "No", DeviceProtection = "Yes", TechSupport = "No", StreamingTV = "No", StreamingMovies = "No")
+
+pred.prot <- predict(train.lm.ajus,newdata = new_data, type = "response")
+
+
+#Busco el precio de TechSupport
+new_data <- data.frame(PhoneService = "No", MultipleLines = "No", InternetService = "No", OnlineSecurity = "No", OnlineBackup = "No", DeviceProtection = "No", TechSupport = "Yes", StreamingTV = "No", StreamingMovies = "No")
+
+pred.supp <- predict(train.lm.ajus,newdata = new_data, type = "response")
+
+
+#Busco el precio de StreamingTV
+new_data <- data.frame(PhoneService = "No", MultipleLines = "No", InternetService = "No", OnlineSecurity = "No", OnlineBackup = "No", DeviceProtection = "No", TechSupport = "No", StreamingTV = "Yes", StreamingMovies = "No")
+
+pred.tv <- predict(train.lm.ajus,newdata = new_data, type = "response")
+
+
+#Busco el precio de StreamingMovies
+new_data <- data.frame(PhoneService = "No", MultipleLines = "No", InternetService = "No", OnlineSecurity = "No", OnlineBackup = "No", DeviceProtection = "No", TechSupport = "No", StreamingTV = "No", StreamingMovies = "Yes")
+
+pred.mov <- predict(train.lm.ajus,newdata = new_data, type = "response")
+
+
+```
+
+El precio aproximado de los servicios son los siguientes:
+
+  - Solo teléfono `r round(pred.telf,2) ` 
+  - Multiples lineas `r round(pred.mult,2)`
+  - Servicio de internet de tipo DSL `r round(pred.dsl,2)` y de tipo Fibra optica `r round(pred.fiber,2)`
+  - Servicio de Seguridad online `r  round(pred.sec,2)`
+  - Servicio de copia de seguridad online `r  round(pred.back,2)`
+  - Servicio de protección de dispositivo `r  round(pred.prot,2)`
+  - Servicio de Asistencia Técnica `r  round(pred.supp,2)`
+  - Servicio de Television `r  round(pred.tv,2)`
+  - Servicio de Series `r  round(pred.mov,2)`
+
+Ahora a partir del modelo ajustado, haz una predicción sobre el conjunto de test: churn_test y calcula el error promedio de las predicciones. Como métrica del error del las predicciones usaremos el RMSE (root mean square error) :
+
+```{r Ajuste test y RMSE, echo = FALSE}
+test.lm.ajus <- lm(MonthlyCharges ~ PhoneService + MultipleLines + InternetService + OnlineSecurity + OnlineBackup + DeviceProtection + TechSupport + StreamingTV + StreamingMovies,data=churn_test)
+
+summ.test.lm <- summary(test.lm.ajus)
+
+rmse<-sqrt(mean(summ.test.lm$residuals^2))
+```
+
+El RMSE es de `r round(rmse,2)`
+
+
+
+## Modelos de Clasificación
+
+Vamos a diseñar y ajustar un modelo de Clasificación para predecir los clientes que pueden abandonar la compañía.
+Ajusta un modelo de regresión logística sobre los datos de entrenamiento churn_train:
+
+  - Usa como variable objetivo Churn
+  - Usa como variables predictoras todas menos customerId.
+
+```{r Modelo de clasificación con train, include = FALSE}
+train.glm <- glm(Churn ~.-customerID  , data = churn_train, family = binomial)
+(sum.train.glm <- summary(train.glm))
+```
+
+
+```{r Ajuste del modelo de clasificación train, include = FALSE}
+train.glm <- glm(Churn ~  tenure + MultipleLines + InternetService + Contract + PaperlessBilling + PaymentMethod + TotalCharges, data = churn_train, family = binomial)
+(sum.train.glm <- summary(train.glm))
+```
+
+Con el modelo ajustado, predice sobre los datos de test (churn_test) la probabilidad de abandono de los clientes. A partir de dicha probabilidad asigna a una variable churn_pred =”Yes” si prob >0.5 y “No” en caso contrario. Calcula la matriz de confusión de la predicción:
+
+```{r Modelo de clasificación en test, echo=FALSE}
+# Omito las NA para que cuadre la tabla
+churn_test <- na.omit(churn_test)
+
+test.glm <- glm(Churn ~ tenure + MultipleLines + InternetService + Contract + PaperlessBilling + PaymentMethod + TotalCharges, data = churn_test, family = binomial)
+
+prob = predict(test.glm, type = "response", na.rm=FALSE)
+
+test.lda <- lda(Churn ~ tenure + MultipleLines + InternetService + Contract + PaperlessBilling + PaymentMethod + TotalCharges, data = churn_test)
+
+prob.lda <- predict(test.lda)
+
+churn_pred=ifelse(prob>0.5,"Yes","No")
+t=table(churn_pred, churn_test$Churn)
+
+t %>%
+  kbl() %>%
+  kable_paper("hover", full_width = F)
+
+#kable(t)
+```
+A partir de ella calcula:
+```{r Calculos sobre matriz, include = FALSE}
+Accu <- (t[1,1]+t[2,2])/(t[1,1]+t[2,1]+t[1,2]+t[2,2])
+fpr <- t[1,2]/(t[1,2]+t[1,1])
+fnr <- t[2,1]/(t[2,1]+t[2,2])
+tpr <- t[2,2]/(t[2,1]+t[2,2])
+```
+
+- La precisión global de la predicción: Accuracy = (TN + TP) / (TN + FN + FP + TP) = `r round(Accu,2)`
+
+  
+- La ratio de falsos positivos: FPR = FP / (FP + TN) = `r round(fpr,2)`
+
+  
+- La ratio de falsos negativos: FNR = FN / (FN + TP) = `r round(fnr,2)`
+
+
+- La ratio de verdaderos positivos: TPR = TP / (FN + TP) = `r round(tpr,2)`
+
+
+Ahora, ajusta en el conjunto de entrenamiento un modelo de clasificación para la variable Churn que use como predictores solo Contract, Tenure e InternetService.
+
+```{r Modelo calsificacion reducido, include = FALSE}
+train.glm <- glm(Churn ~ Contract + tenure + InternetService  , data = churn_train, family = binomial)
+(sum.train.glm <- summary(train.glm))
+```
+
+
+
+Predice en el conjunto de test y calcula la matriz de confusión, así como las métricas que has calculado para el modelo anterior y compara los resultados.
+
+
+```{r Matriz de confusión, echo= FALSE}
+test.glm.2 <- glm(Churn ~ tenure + InternetService + Contract, data = churn_test, family = binomial)
+prob.2 = predict(test.glm.2, type = "response", na.rm=FALSE)
+
+test.lda.2 <- lda(Churn ~ tenure + InternetService + Contract, data = churn_test)
+prob.lda.2 <- predict(test.lda.2)
+
+churn_pred.2=ifelse(prob.2>0.5,"Yes","No")
+t=table(churn_pred.2, churn_test$Churn)
+t %>%
+  kbl() %>%
+  kable_paper("hover", full_width = F)
+```
+
+
+```{r Calculos sobre matriz 2, include = FALSE}
+Accu <- (t[1,1]+t[2,2])/(t[1,1]+t[2,1]+t[1,2]+t[2,2])
+fpr <- t[1,2]/(t[1,2]+t[1,1])
+fnr <- t[2,1]/(t[2,1]+t[2,2])
+tpr <- t[2,2]/(t[2,1]+t[2,2])
+```
+ 
+- La precisión global de la predicción: Accuracy =  `r round(Accu,2)`
+
+  
+- La ratio de falsos positivos: FPR  = `r round(fpr,2)`
+
+  
+- La ratio de falsos negativos: FNR = `r round(fnr,2)`
+
+
+- La ratio de verdaderos positivos: TPR  = `r round(tpr,2)`
+
+# Simulación de campaña de Retención
+
+Ahora a partir de los resultados del primer modelo de regresión logística (en el que usabas todas las variables) vamos a evaluar el rendimiento económico de una campaña de retención. Usaremos las predicciones sobre el conjunto de test.
+
+Para calcular el rendimiento de la campaña tendremos en cuenta lo siguiente:
+
+- A los clientes clasificados por el modelo como “Churners” se les ofrecerá un teléfono de regalo a cambio de que firmen un contrato de permanencia por un año. El coste del teléfono lo denominamos CT. Estos clientes aceptaran el trato con una probabilidad AR.
+
+- El beneficio asociado a la retención de un cliente lo estimamos como el consumo medio anual de un cliente menos el coste de gestión (uso de infraestructura, facturación, atención al cliente etc). Estimaremos que el retorno medio de la retención de un cliente es R (lo fijaremos en 500 Euros).
+
+- Un cliente que abandona la compañía, estimamos que genera una pérdida igual al retorno R que genera la retención, es decir 500 Euros
+
+Para diferentes umbrales de clasificación up = (0, 0.1,0.2,0.3, 0.4, 0.5, 0.6 ,0.7, 0.8, 0.9, y 1), en función de la probabilidad de Churn estimada por el modelo clasificaremos a los clientes en pred_churn = ”Yes” si prob>up y “No” en caso contrario. En el apartado anterior hemos utilizado la elección habitual de up=0.5.
+
+Conforme suba el umbral de probabilidad, seleccionaremos a menos clientes para la campaña. Por un lado, esto tendrá menos coste debido al incentivo que se ofrece, pero por otro lado se obtendrán menos retenciones. Hay que encontrar el umbral óptimo en el que se obtiene un mayor rendimiento para la campaña.
+
+Para cada umbral de probabilidad, calculamos a partir de la probabilidad del modelo la variable churn_pred y calculamos la matriz de confusión
+
+```{r Simulacion de campaña, echo=FALSE}
+#Nombro las variables
+
+up = c(0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1)
+
+churn_test <- na.omit(churn_test)
+
+test.glm <- glm(Churn ~ tenure + MultipleLines + InternetService + Contract + PaperlessBilling + PaymentMethod + TotalCharges, data = churn_test, family = binomial)
+
+prob = predict(test.glm, type = "response", na.rm=FALSE)
+
+test.lda <- lda(Churn ~ tenure + MultipleLines + InternetService + Contract + PaperlessBilling + PaymentMethod + TotalCharges, data = churn_test)
+
+prob.lda <- predict(test.lda)
+
+#Se realiza un buche para up
+
+for (i in up){
+  churn_pred=ifelse(prob>i,"Yes","No")
+  t=table(churn_pred, churn_test$Churn,useNA = "always")
+  
+  Accu <- (t[1,1]+t[2,2])/(t[1,1]+t[2,1]+t[1,2]+t[2,2])
+  print("-  -  -  -  -  -  -  -  -  -  -")
+  print("Umbral de clasificación para:")
+  print(i)
+  print("su matriz:")
+  print(t)
+  print("Y la precision es de:")
+  print(Accu)
+}
+
+```
+
+Se observa que la clasificaion más optima es de 0,5
+
+Cuya matriz es:
+
+```{r Clasificacion optima, echo=FALSE}
+churn_pred=ifelse(prob>0.5,"Yes","No")
+t=table(churn_pred, churn_test$Churn)
+t %>%
+  kbl() %>%
+  kable_paper("hover", full_width = F)
+
+Accu <- (t[1,1]+t[2,2])/(t[1,1]+t[2,1]+t[1,2]+t[2,2])
+```
+y con un umbral de precision de: `r round(Accu,2)`
+
+
+
+Podemos estimar el beneficio de la campaña, para ese umbral, como:
+
+Beneficio = ResultadoConCampaña – ResultadoSinCampaña
+
+y
+
+ResultadoConCampaña= - FP*AR*I - TP*AR* I - TP*(1-AR)*R - FN*R
+
+donde:
+
+
+- El primer y segundo término corresponde el gasto en los teléfonos que regalamos a los clientes que aceptan la promoción y que no hubieran abandonado la compañía, aunque no se hubiera hecho campaña.
+
+- El tercero representa la perdida de los clientes a los que se ha hecho la promoción, no la han aceptado y se han marchado.
+
+- El cuarto representa a los clientes a los que no se ha realizado la promoción y han acabado marchándose.
+ResultadoSinCampaña = - (FN + TP) *R
+
+- Este valor representa la pérdida de ingresos debido al abandono real de los clientes, en caso de no hacerse campaña. Notad que ese término no depende del modelo ajustado ni de los umbrales de probabilidad.
+Nota que el resultado en ambos casos es un número negativo. Solo tenemos en cuenta pérdidas económicas, ya sea por gasto de promoción o por la facturación esperada a futuro de un cliente que abandona la compañía.
+
+
+
+Vamos a calcular los resultados de la campaña para dos escenarios de incentivo distintos.
+
+1. Supongamos:
+- Coste teléfono de regalo: I=200 Eur
+- Probabilidad de aceptación AR= 0.4
+- R = 500 Eur
+
+Calcula para cada umbral de probabilidad, el beneficio de la campaña usando las fórmulas anteriores.
+
+
+¿Cuál sería el umbral de probabilidad para la selección de clientes óptimo para la campaña?
+
+```{r Campaña 1, include = FALSE}
+#Nombro las variables
+I= 200
+AR = 0.4
+R = 500
+
+
+churn_test <- na.omit(churn_test)
+
+test.glm <- glm(Churn ~ tenure + MultipleLines + InternetService + Contract + PaperlessBilling + PaymentMethod + TotalCharges, data = churn_test, family = binomial)
+
+prob = predict(test.glm, type = "response", na.rm=FALSE)
+
+test.lda <- lda(Churn ~ tenure + MultipleLines + InternetService + Contract + PaperlessBilling + PaymentMethod + TotalCharges, data = churn_test)
+
+prob.lda <- predict(test.lda)
+
+```
+
+
+
+```{r Umbral de probabilidad, include = FALSE}
+#Calculo la probabilidad sobre el AR dado
+
+churn_pred=ifelse(prob>AR,"Yes","No")
+t=table(churn_pred, churn_test$Churn)
+  
+Accu <- (t[1,1]+t[2,2])/(t[1,1]+t[2,1]+t[1,2]+t[2,2])
+
+```
+
+
+El umbral de probabilidad sería de `r round(Accu,2)`
+
+
+
+ ¿Qué beneficios generaría?
+```{r Calculos de resultado, include = FALSE}
+#tomo los valores de la matriz
+
+FP = t[1,2]
+TP = t[2,2]
+FN = t[2,1]
+
+
+
+ResultadoConCampaña = - FP * AR * I - TP * AR * I - TP * (1-AR) * R - FN * R
+
+ResultadoSinCampaña = - (FN + TP) * R
+
+Beneficio = - ResultadoConCampaña + ResultadoSinCampaña
+```
+
+El resultado con campaña sería de `r round(ResultadoConCampaña,2) ` y sin campaña seía de `r  round(ResultadoSinCampaña,2)`
+
+Con lo que se generaría : `r round(Beneficio,2)`
+
+
+
+2) Supongamos:
+
+  - Coste teléfono: I=400 Eur
+  - Probabilidad de aceptación AR= 0.8
+  - R = 500 Eur
+  
+Calcula el umbral óptimo y el beneficio de la campaña para el umbral óptimo. ¿Se obtienen mejores o peores resultados respecto a la campaña con incentivo menor?
+
+
+```{r Campaña 2, include = FALSE}
+
+#Nombro las variables
+I= 400
+AR = 0.8
+R = 500
+
+
+churn_test <- na.omit(churn_test)
+
+test.glm <- glm(Churn ~ tenure + MultipleLines + InternetService + Contract + PaperlessBilling + PaymentMethod + TotalCharges, data = churn_test, family = binomial)
+
+prob = predict(test.glm, type = "response", na.rm=FALSE)
+
+test.lda <- lda(Churn ~ tenure + MultipleLines + InternetService + Contract + PaperlessBilling + PaymentMethod + TotalCharges, data = churn_test)
+
+prob.lda <- predict(test.lda)
+
+#Calculo la probabilidad sobre el AR dado
+
+churn_pred=ifelse(prob>AR,"Yes","No")
+t=table(churn_pred, churn_test$Churn,useNA = "always")
+  
+Accu <- (t[1,1]+t[2,2])/(t[1,1]+t[2,1]+t[1,2]+t[2,2])
+
+
+# Tomo los valores de la matriz
+
+FP = t[1,2]
+TP = t[2,2]
+FN = t[2,1]
+
+
+
+ResultadoConCampaña2 = - FP * AR * I - TP * AR * I - TP * (1-AR) * R - FN * R
+
+ResultadoSinCampaña2 = - (FN + TP) * R
+
+Beneficio2 = ResultadoConCampaña2 - ResultadoSinCampaña2
+
+
+```
+
+En este caso, el resultado con campaña sería de `r round(ResultadoConCampaña2,2) ` y sin campaña seía de `r  round(ResultadoSinCampaña2,2)`
+
+Con lo que se generaría : `r round(Beneficio2,2)`
+
+
+Con lo que se optienen mejores resultados con una campaña de incentivo mayor.
+
+
+
+
+
+
